@@ -12,9 +12,13 @@ import (
 	"github.com/northwood-labs/assume-spoke-role/hubspoke"
 )
 
+const (
+	defaultAWSRetries = 3
+	verboseAWSDebug   = 3
+)
+
 func main() {
 	ctx := context.Background()
-	// logger := log.GetStdTextLogger()
 	externalID := os.Getenv("ASSUME_ROLE_EXTERNAL_ID")
 	hubAccount := os.Getenv("ASSUME_ROLE_HUB_ACCOUNT")
 	hubRole := os.Getenv("ASSUME_ROLE_HUB_ROLE")
@@ -27,26 +31,18 @@ func main() {
 	spokeAccountFlag := flag.StringP("spoke-account", "s", "", "The 12-digit numeric ID of the AWS account containing the SPOKE policy. Takes precedence over the `ASSUME_ROLE_SPOKE_ACCOUNT` environment variable.")  // lint:ignore-length
 	hubRoleFlag := flag.String("hub-role", "", "The name of the IAM role to assume in the HUB account. Takes precedence over the `ASSUME_ROLE_HUB_ROLE` environment variable.")                                        // lint:ignore-length
 	spokeRoleFlag := flag.String("spoke-role", "", "The name of the IAM role to assume in the HUB account. Takes precedence over the `ASSUME_ROLE_SPOKE_ROLE` environment variable.")                                  // lint:ignore-length
-	retriesFlag := flag.IntP("retries", "r", 3, "The maximum number of retries that the underlying AWS SDK should perform.")                                                                                           // lint:ignore-length
+	retriesFlag := flag.IntP("retries", "r", defaultAWSRetries, "The maximum number of retries that the underlying AWS SDK should perform.")                                                                           // lint:ignore-length
 	verboseFlag := flag.CountP("verbose", "v", "Enable verbose logging. Can be stacked up to `-vvv`.")                                                                                                                 // lint:ignore-length
 
 	flag.Parse()
 
 	// Do we have a hub account?
 	if *hubAccountFlag == "" {
-		// if *verboseFlag == 2 {
-		// 	logger.Info().Str("ASSUME_ROLE_HUB_ACCOUNT", hubAccount).Msg("Flag --hub-account not set. Reading from `ASSUME_ROLE_HUB_ACCOUNT`.")
-		// }
-
 		*hubAccountFlag = hubAccount
 	}
 
 	// Do we have a spoke account?
 	if *spokeAccountFlag == "" {
-		// if *verboseFlag == 2 {
-		// 	logger.Info().Str("ASSUME_ROLE_SPOKE_ACCOUNT", hubAccount).Msg("Flag --spoke-account not set. Reading from `ASSUME_ROLE_SPOKE_ACCOUNT`.")
-		// }
-
 		*spokeAccountFlag = spokeAccount
 	}
 
@@ -66,7 +62,7 @@ func main() {
 	}
 
 	// Get AWS credentials from environment.
-	config, err := awsutils.GetAWSConfig(ctx, "", "", *retriesFlag, *verboseFlag == 3)
+	config, err := awsutils.GetAWSConfig(ctx, "", "", *retriesFlag, *verboseFlag == verboseAWSDebug)
 	if err != nil {
 		exiterrorf.ExitErrorf(errors.Wrap(err, "could not generate a valid AWS configuration object"))
 	}
@@ -77,9 +73,9 @@ func main() {
 		&config,
 		*hubAccountFlag,
 		*spokeAccountFlag,
-		hubRoleFlag,
-		spokeRoleFlag,
-		externalIDFlag,
+		*hubRoleFlag,
+		*spokeRoleFlag,
+		*externalIDFlag,
 	)
 	if err != nil {
 		exiterrorf.ExitErrorf(errors.Wrap(err, "could not generate valid AWS credentials for the 'spoke' account"))
