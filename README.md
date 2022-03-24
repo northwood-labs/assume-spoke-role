@@ -43,17 +43,11 @@ In larger setups that use AWS Control Tower, these policies can be provisioned w
 ## Usage as CLI Tool
 
 ```bash
-assume-spoke-role --help
-```
-
-Run a command in another account (assuming you have permissions to assume a role).
-
-```bash
 # Learn how it works.
 assume-spoke-role --help
 ```
 
-The ` -- ` marker signifies the end of passing options, and to begin treating subsequent text as the command to run with those credentials.
+Run a command in another account (assuming you have permissions to assume a role). The ` -- ` marker signifies the end of passing options, and to begin treating subsequent text as the command to run with those credentials.
 
 Assuming you're using [AWS Vault](https://github.com/99designs/aws-vault) to manage your credentials, and want to manage common configurations via environment variables:
 
