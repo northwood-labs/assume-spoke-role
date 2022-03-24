@@ -84,10 +84,42 @@ aws-vault exec sys-robot --no-session -- \
 This can also be used as a library in your own applications for generating a set of STS credentials.
 
 ```go
-import "github.com/northwood-labs/assume-spoke-role/hubspoke"
+import (
+    "github.com/northwood-labs/assume-spoke-role/hubspoke"
+	"github.com/northwood-labs/awsutils"
+)
+
+func main() {
+    // Get AWS credentials from environment.
+    config, err := awsutils.GetAWSConfig(ctx, "", "", 3, false)
+    if err != nil {
+        log.Fatal(fmt.Sprintf("could not generate a valid AWS configuration object: %w", err))
+    }
+
+    // Assume appropriate roles and return session credentials for the "Spoke" account.
+    roleCredentials, _, err := hubspoke.GetSpokeCredentials(&hubspoke.SpokeCredentialsInput{
+        Context:        ctx,
+        Config:         &config,
+        HubAccountID:   "888888888888",
+        SpokeAccountID: "999999999999",
+        HubRoleName:    "hub-role",
+        SpokeRoleName:  "spoke-role",
+        ExternalID:     "abc123",
+        SessionString:  "me@email.com",
+    })
+    if err != nil {
+        log.Fatal(fmt.Sprintf("could not generate valid AWS credentials for the 'spoke' account: %w", err))
+    }
+
+    fmt.Printf("AWS_ACCESS_KEY_ID=%s\n", *roleCredentials.AccessKeyId),
+    fmt.Printf("AWS_SECRET_ACCESS_KEY=%s\n", *roleCredentials.SecretAccessKey),
+    fmt.Printf("AWS_SECURITY_TOKEN=%s\n", *roleCredentials.SessionToken),
+    fmt.Printf("AWS_SESSION_TOKEN=%s\n", *roleCredentials.SessionToken),
+    fmt.Printf("AWS_SESSION_EXPIRATION=%s\n", roleCredentials.Expiration.String()),
+}
 ```
 
-See `main.go`, which implements this library to produce this very same CLI tool.
+See `cmd_run.go`, which implements this library to produce this very same CLI tool.
 
 ## Setting up the Hub/Spoke configuration
 
