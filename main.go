@@ -2,85 +2,71 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"runtime"
 
 	errors "github.com/go-faster/errors"
-	"github.com/northwood-labs/awsutils"
+	"github.com/gookit/color"
+	cli "github.com/jawher/mow.cli"
 	"github.com/northwood-labs/golang-utils/exiterrorf"
-	flag "github.com/spf13/pflag"
-
-	"github.com/northwood-labs/assume-spoke-role/hubspoke"
 )
 
-const (
-	defaultAWSRetries = 3
-	verboseAWSDebug   = 3
+var (
+	// Make referencable throughout.
+	app *cli.Cli
+	err error
+
+	ctx = context.Background()
+
+	// Color text.
+	colorHeader = color.New(color.FgWhite, color.BgBlue, color.OpBold)
+
+	// Buildtime variables.
+	commit  string
+	date    string
+	version string
 )
 
 func main() {
-	ctx := context.Background()
-	externalID := os.Getenv("ASSUME_ROLE_EXTERNAL_ID")
-	hubAccount := os.Getenv("ASSUME_ROLE_HUB_ACCOUNT")
-	hubRole := os.Getenv("ASSUME_ROLE_HUB_ROLE")
-	spokeAccount := os.Getenv("ASSUME_ROLE_SPOKE_ACCOUNT")
-	spokeRole := os.Getenv("ASSUME_ROLE_SPOKE_ROLE")
+	desc := `Assumes a 'spoke' role, from a 'hub' role, from a resource.
 
-	// Flags
-	externalIDFlag := flag.StringP("external-id", "e", "", "The external ID value that is required by your hub and spoke policies, if any. Takes precedence over the `ASSUME_ROLE_EXTERNAL_ID` environment variable.") // lint:ignore-length
-	hubAccountFlag := flag.StringP("hub-account", "h", "", "The 12-digit numeric ID of the AWS account containing the HUB policy. Takes precedence over the `ASSUME_ROLE_HUB_ACCOUNT` environment variable.")          // lint:ignore-length
-	spokeAccountFlag := flag.StringP("spoke-account", "s", "", "The 12-digit numeric ID of the AWS account containing the SPOKE policy. Takes precedence over the `ASSUME_ROLE_SPOKE_ACCOUNT` environment variable.")  // lint:ignore-length
-	hubRoleFlag := flag.String("hub-role", "", "The name of the IAM role to assume in the HUB account. Takes precedence over the `ASSUME_ROLE_HUB_ROLE` environment variable.")                                        // lint:ignore-length
-	spokeRoleFlag := flag.String("spoke-role", "", "The name of the IAM role to assume in the HUB account. Takes precedence over the `ASSUME_ROLE_SPOKE_ROLE` environment variable.")                                  // lint:ignore-length
-	retriesFlag := flag.IntP("retries", "r", defaultAWSRetries, "The maximum number of retries that the underlying AWS SDK should perform.")                                                                           // lint:ignore-length
-	verboseFlag := flag.CountP("verbose", "v", "Enable verbose logging. Can be stacked up to `-vvv`.")                                                                                                                 // lint:ignore-length
+Example #1:
 
-	flag.Parse()
+    export ASSUME_ROLE_EXTERNAL_ID=this-is-my-robot
+    export ASSUME_ROLE_HUB_ACCOUNT=999999999999
+    export ASSUME_ROLE_HUB_ROLE=robot-hub-role
+    export ASSUME_ROLE_SPOKE_ROLE=robot-spoke-role
 
-	// Do we have a hub account?
-	if *hubAccountFlag == "" {
-		*hubAccountFlag = hubAccount
-	}
+    aws-vault exec sys-robot --no-session -- \
+        assume-spoke-role --spoke-account 888888888888 -- \
+            aws sts get-caller-identity
 
-	// Do we have a spoke account?
-	if *spokeAccountFlag == "" {
-		*spokeAccountFlag = spokeAccount
-	}
+Example #2:
 
-	// Do we have a hub role?
-	if *hubRoleFlag == "" {
-		*hubRoleFlag = hubRole
-	}
+    aws-vault exec sys-robot --no-session -- \
+        assume-spoke-role \
+            --hub-account 999999999999 \
+            --spoke-account 888888888888 \
+            --hub-role robot-hub-role \
+            --spoke-role robot-spoke-role \
+            --external-id this-is-my-robot \
+            -- \
+                aws sts get-caller-identity`
 
-	// Do we have a spoke role?
-	if *spokeRoleFlag == "" {
-		*spokeRoleFlag = spokeRole
-	}
+	app = cli.App("assume-spoke-role", desc)
+	app.Version("version", fmt.Sprintf(
+		"assume-spoke-role %s (%s/%s)",
+		version,
+		runtime.GOOS,
+		runtime.GOARCH,
+	))
 
-	// Do we have an external ID?
-	if *externalIDFlag == "" {
-		*externalIDFlag = externalID
-	}
+	app.Command("run", "Perform the action of assuming roles and running an action.", cmdRun)
+	app.Command("version", "Verbose information about the build.", cmdVersion)
 
-	// Get AWS credentials from environment.
-	config, err := awsutils.GetAWSConfig(ctx, "", "", *retriesFlag, *verboseFlag == verboseAWSDebug)
+	err = app.Run(os.Args)
 	if err != nil {
-		exiterrorf.ExitErrorf(errors.Wrap(err, "could not generate a valid AWS configuration object"))
+		exiterrorf.ExitErrorf(errors.Wrap(err, "failed to execute application"))
 	}
-
-	// Assume appropriate roles and return session credentials for the "Spoke" account.
-	roleCredentials, _, err := hubspoke.GetSpokeCredentials(
-		ctx,
-		&config,
-		*hubAccountFlag,
-		*spokeAccountFlag,
-		*hubRoleFlag,
-		*spokeRoleFlag,
-		*externalIDFlag,
-	)
-	if err != nil {
-		exiterrorf.ExitErrorf(errors.Wrap(err, "could not generate valid AWS credentials for the 'spoke' account"))
-	}
-
-	// Pass the spoke credentials to a CLI task.
-	runCommand(roleCredentials, flag.CommandLine.Args())
 }
