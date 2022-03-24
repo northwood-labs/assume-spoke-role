@@ -5,6 +5,8 @@ current_dir := $(dir $(mkfile_path))
 #-------------------------------------------------------------------------------
 # Global stuff.
 
+GO=$(shell which go)
+
 # Determine which version of `echo` to use. Use version from coreutils if available.
 ECHOCHECK := $(shell command -v /usr/local/opt/coreutils/libexec/gnubin/echo 2> /dev/null)
 ifdef ECHOCHECK
@@ -38,9 +40,9 @@ help:
 .PHONY: install-tools-goget
 ## install-tools-goget: [deps] Installs the tools using the Go toolchain.
 install-tools-goget:
-	go get -u github.com/sqs/goreturns
-	go get -u golang.org/x/tools/cmd/goimports
-	go get -u mvdan.cc/gofumpt
+	$(GO) get -u github.com/sqs/goreturns
+	$(GO) get -u golang.org/x/tools/cmd/goimports
+	$(GO) get -u mvdan.cc/gofumpt
 
 .PHONY: install-tools-linux
 ## install-tools-linux: [deps] Installs the tools using Linux-friendly approaches (includes `go get` tools).
@@ -67,12 +69,12 @@ clean-app:
 .PHONY: clean-go
 ## clean-go: [clean] clean Go's module cache
 clean-go:
-	go clean -i -r
+	$(GO) clean -i -r
 
 .PHONY: clean-go-deep
 ## clean-go-deep: [clean] deep-clean Go's module cache
 clean-go-deep:
-	go clean -i -r -x -testcache -modcache -cache
+	$(GO) clean -i -r -x -testcache -modcache -cache
 
 #-------------------------------------------------------------------------------
 # Building Go code
@@ -83,7 +85,7 @@ build-golang: godeps
 	@ $(ECHO) " "
 	@ $(ECHO) "=====> Running go build..."
 	mkdir -p ./bin
-	go build -ldflags="-s -w -X main.commit=$$(git rev-parse HEAD) -X main.date=$$(date '+%Y-%m-%d') -X main.version=$$(cat ./VERSION | tr -d '\n')" -o bin/$(BINARY_NAME) *.go
+	$(GO) build -ldflags="-s -w -X main.commit=$$(git rev-parse HEAD) -X main.date=$$(date '+%Y-%m-%d') -X main.version=$$(cat ./VERSION | tr -d '\n')" -o bin/$(BINARY_NAME) *.go
 
 .PHONY: build
 ## build: [build]* Checks dependencies and cleans up go.mod, then compiles the source code.
@@ -125,7 +127,7 @@ check-deps:
 godeps:
 	@ $(ECHO) " "
 	@ $(ECHO) "=====> Running go get -v..."
-	go mod tidy -go=1.17 && go get -v ./...
+	$(GO) mod tidy -go=1.17 && go get -v ./...
 
 .PHONY: gofmt
 ## gofmt: [lint] Rewrite the source files to match canonical Go format.

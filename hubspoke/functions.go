@@ -46,50 +46,53 @@ type SpokeCredentialsInput struct {
 
 // GetSpokeCredentials accepts a GetSpokeCredentialsInput object, and returns a
 // set of STS session credentials for the spoke account.
-func GetSpokeCredentials(o SpokeCredentialsInput) (*types.Credentials, aws.Config, error) {
+func GetSpokeCredentials(input *SpokeCredentialsInput) (*types.Credentials, aws.Config, error) {
+	const randomStringLength = 32
+
 	emptyCredentials := types.Credentials{}
 	emptyConfig := aws.Config{}
 
-	sessionName := o.SessionString
+	sessionName := input.SessionString
 	if sessionName == "" {
 		rand.Seed(time.Now().UnixNano())
-		sessionName = randomString(32)
+
+		sessionName = randomString(randomStringLength)
 	}
 
-	hubRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", o.HubAccountID, o.HubRoleName)
-	spokeRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", o.SpokeAccountID, o.SpokeRoleName)
+	hubRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", input.HubAccountID, input.HubRoleName)
+	spokeRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", input.SpokeAccountID, input.SpokeRoleName)
 
 	// Assume the HUB role.
-	stsHubClient := sts.NewFromConfig(*o.Config)
-	o.Config.Credentials = aws.NewCredentialsCache(
+	stsHubClient := sts.NewFromConfig(*input.Config)
+	input.Config.Credentials = aws.NewCredentialsCache(
 		stscreds.NewAssumeRoleProvider(stsHubClient, hubRoleARN, func(o *stscreds.AssumeRoleOptions) {
-			o.ExternalID = aws.String(*o.ExternalID)
+			o.ExternalID = aws.String(input.ExternalID)
 		}),
 	)
 
 	// Assume the SPOKE role.
-	stsSpokeClient := sts.NewFromConfig(*o.Config)
-	response, err := stsSpokeClient.AssumeRole(o.Context, &sts.AssumeRoleInput{
+	stsSpokeClient := sts.NewFromConfig(*input.Config)
+	response, err := stsSpokeClient.AssumeRole(input.Context, &sts.AssumeRoleInput{
 		RoleArn:         aws.String(spokeRoleARN),
-		RoleSessionName: aws.String(fmt.Sprintf("%s-%s", o.SpokeAccountID, sessionName)),
-		ExternalId:      aws.String(o.ExternalID),
+		RoleSessionName: aws.String(fmt.Sprintf("%s-%s", input.SpokeAccountID, sessionName)),
+		ExternalId:      aws.String(input.ExternalID),
 	})
 	if err != nil { // lint:allow_cuddling
 		return &emptyCredentials, emptyConfig, errors.Wrap(err, fmt.Sprintf(
 			"error assuming '%s' role in account %s",
 			spokeRoleARN,
-			o.SpokeAccountID,
+			input.SpokeAccountID,
 		))
 	}
 
-	o.Config.Credentials = aws.NewCredentialsCache(
+	input.Config.Credentials = aws.NewCredentialsCache(
 		stscreds.NewAssumeRoleProvider(stsSpokeClient, spokeRoleARN, func(o *stscreds.AssumeRoleOptions) {
-			o.RoleSessionName = fmt.Sprintf("%s-%s", o.SpokeAccountID, sessionName)
-			o.ExternalID = aws.String(*o.ExternalID)
+			o.RoleSessionName = fmt.Sprintf("%s-%s", input.SpokeAccountID, sessionName)
+			o.ExternalID = aws.String(input.ExternalID)
 		}),
 	)
 
-	return response.Credentials, *o.Config, nil
+	return response.Credentials, *input.Config, nil
 }
 
 func randomString(l int) string {
@@ -101,7 +104,7 @@ func randomString(l int) string {
 	bytes := make([]byte, l)
 
 	for i := 0; i < l; i++ {
-		bytes[i] = pool[rand.Intn(len(pool))]
+		bytes[i] = pool[rand.Intn(len(pool))] // lint:not_crypto
 	}
 
 	return string(bytes)

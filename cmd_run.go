@@ -51,15 +51,15 @@ take precedence over environment variables.`
 		}
 
 		// Assume appropriate roles and return session credentials for the "Spoke" account.
-		roleCredentials, _, err := hubspoke.GetSpokeCredentials(hubspoke.SpokeCredentialsInput{
-			Context:          ctx,
-			Config:           &config,
-			HubAccountFlag:   *hubAccountFlag,
-			SpokeAccountFlag: *spokeAccountFlag,
-			HubRoleFlag:      *hubRoleFlag,
-			SpokeRoleFlag:    *spokeRoleFlag,
-			ExternalIDFlag:   *externalIDFlag,
-			SessionString:    *sessionStringFlag,
+		roleCredentials, _, err := hubspoke.GetSpokeCredentials(&hubspoke.SpokeCredentialsInput{
+			Context:        ctx,
+			Config:         &config,
+			HubAccountID:   *hubAccountFlag,
+			SpokeAccountID: *spokeAccountFlag,
+			HubRoleName:    *hubRoleFlag,
+			SpokeRoleName:  *spokeRoleFlag,
+			ExternalID:     *externalIDFlag,
+			SessionString:  *sessionStringFlag,
 		})
 		if err != nil {
 			exiterrorf.ExitErrorf(errors.Wrap(err, "could not generate valid AWS credentials for the 'spoke' account"))
