@@ -22,7 +22,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.2 // indirect
 	github.com/aws/smithy-go v1.11.2 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 
 )
