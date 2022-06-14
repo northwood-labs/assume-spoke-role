@@ -3,8 +3,6 @@ package hubspoke
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
@@ -47,17 +45,10 @@ type SpokeCredentialsInput struct {
 // GetSpokeCredentials accepts a GetSpokeCredentialsInput object, and returns a
 // set of STS session credentials for the spoke account.
 func GetSpokeCredentials(input *SpokeCredentialsInput) (*types.Credentials, aws.Config, error) {
-	const randomStringLength = 32
-
 	emptyCredentials := types.Credentials{}
 	emptyConfig := aws.Config{}
 
 	sessionName := input.SessionString
-	if sessionName == "" {
-		rand.Seed(time.Now().UnixNano())
-
-		sessionName = randomString(randomStringLength)
-	}
 
 	hubRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", input.HubAccountID, input.HubRoleName)
 	spokeRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", input.SpokeAccountID, input.SpokeRoleName)
@@ -93,19 +84,4 @@ func GetSpokeCredentials(input *SpokeCredentialsInput) (*types.Credentials, aws.
 	)
 
 	return response.Credentials, *input.Config, nil
-}
-
-func randomString(l int) string {
-	const (
-		// Pool of characters to choose from when generating a random session ID.
-		pool = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	)
-
-	bytes := make([]byte, l)
-
-	for i := 0; i < l; i++ {
-		bytes[i] = pool[rand.Intn(len(pool))] // lint:not_crypto
-	}
-
-	return string(bytes)
 }
