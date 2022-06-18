@@ -57,7 +57,8 @@ func GetSpokeCredentials(input *SpokeCredentialsInput) (*types.Credentials, aws.
 	stsHubClient := sts.NewFromConfig(*input.Config)
 	input.Config.Credentials = aws.NewCredentialsCache(
 		stscreds.NewAssumeRoleProvider(stsHubClient, hubRoleARN, func(o *stscreds.AssumeRoleOptions) {
-			o.ExternalID = aws.String(input.ExternalID)
+			o.RoleSessionName = sessionName
+            o.ExternalID = aws.String(input.ExternalID)
 		}),
 	)
 
