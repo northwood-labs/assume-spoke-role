@@ -7,7 +7,7 @@ toolchain go1.22.0
 require (
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
 	github.com/go-faster/errors v0.7.1
 	github.com/gookit/color v1.5.4
 	github.com/northwood-labs/awsutils v0.0.0-20220620172853-924504e83dfb
